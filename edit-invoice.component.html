@@ -1,0 +1,591 @@
+<div class="modal-header stuk-modal-header bg-primary text-white" *ngIf="data">
+  <span class="stuk-modal-title">Edit Invoice</span>
+  <span class="stuk-modal-title ml-auto mr-2">ID: #{{ invoiceId }}</span>
+  <button
+    class="text-white"
+    type="button"
+    class="close"
+    aria-label="Close"
+    (click)="close()"
+  >
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="modal-body modal-body-light" *ngIf="data" tabindex="-1">
+  <div class="card">
+    <div class="card-header">
+      <span class="font-15 semi-bold-text">Invoice</span>
+    </div>
+    <div
+      class="card-body px-0"
+      *ngIf="data.orderInfo && data.orderInfo.orderType == 'custom'"
+    >
+      <div class="row mx-0">
+        <div class="col-sm-4" *ngIf="data.orderInfo.serviceId != '26'">
+          <label for="services">Rate Type </label>
+          <select
+            class="form-control stuk-input"
+            #rateTypeId="ngModel"
+            [(ngModel)]="data.orderInfo.rateTypeId"
+            name="rateTypeId"
+            (change)="changeRateType()"
+            required
+          >
+            <option *ngFor="let rate of rateTypes" [value]="rate.rateTypesId">
+              {{ rate.rateType.name }}
+            </option>
+          </select>
+        </div>
+        <div class="col-sm-4">
+          <label for="services">Class Type </label>
+          <select
+            class="form-control stuk-input"
+            #classTypeId="ngModel"
+            [(ngModel)]="data.orderInfo.classTypeId"
+            name="classTypeId"
+            (change)="changeClassType()"
+            required
+          >
+            <option *ngFor="let cls of classTypes" [value]="cls.id">
+              {{ cls.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- <div class="col-sm-4">
+          <label for="">Billing Type</label>
+          <select
+            class="form-control stuk-input"
+            name="billingType"
+            [(ngModel)]="data.orderInfo.billingType"
+          >
+            <option [ngValue]="null">Select</option>
+            <option [value]="'card'">Credit/Debit Card</option>
+            <option [value]="'account'">Account</option>
+            <option [value]="'cash'">Cash</option>
+          </select>
+        </div> -->
+      </div>
+      <div class="row mt-3">
+        <div class="col-sm-12">
+          <table class="table stuk-table">
+            <thead class="stuk-table-header">
+              <tr>
+                <th>Item</th>
+                <th class="pl-2">Qty</th>
+                <th class="pl-2">Price</th>
+                <th class="pl-0">Total</th>
+              </tr>
+            </thead>
+            <tbody
+              *ngIf="
+                data.orderInfo.orderMainItems &&
+                data.orderInfo.orderMainItems.length
+              "
+            >
+              <tr
+                *ngFor="
+                  let clItem of data.orderInfo.orderMainItems;
+                  let i = index
+                "
+                (input)="calculatePrice()"
+              >
+                <td class="border-0" style="width: 40%">
+                  <span
+                    style="margin-right: 2px"
+                    (click)="removeRateTypeItem(clItem)"
+                  >
+                    <i class="st-icon st-close-dark pointer"></i>
+                  </span>
+                  {{ clItem.key }}
+                </td>
+                <td class="border-0 w-25">
+                  <input
+                    type="number"
+                    class="form-control stuk-input table-input"
+                    name="quantity-{{ i }}"
+                    [(ngModel)]="clItem.qty"
+                  />
+                </td>
+                <td class="border-0 w-25">
+                  <div class="custom-input-group mb-2 table-input">
+                    <div class="input-group-prepend">
+                      <div class="input-group-text">
+                        <span>$</span>
+                      </div>
+                    </div>
+                    <input
+                      type="number"
+                      class="form-control"
+                      [(ngModel)]="clItem.price"
+                      name="price-{{ i }}"
+                    />
+                  </div>
+                </td>
+
+                <td style="padding-top: 20px; width: 10%" class="border-0">
+                  $ {{ clItem.qty * clItem.price | decimalNumber }}
+                </td>
+              </tr>
+            </tbody>
+            <tbody
+              class="border-0"
+              *ngIf="
+                data.orderInfo.orderAdditionalItems &&
+                data.orderInfo.orderAdditionalItems.length
+              "
+            >
+              <tr
+                *ngFor="
+                  let item of data.orderInfo.orderAdditionalItems;
+                  let i = index
+                "
+                (input)="calculatePrice()"
+              >
+                <td class="border-0" style="width: 40%">
+                  <span
+                    style="margin-right: 2px"
+                    (click)="removeAdditionalItem(item)"
+                  >
+                    <i class="st-icon st-close-dark pointer"></i>
+                  </span>
+                  {{ item.name }}
+                </td>
+                <td class="border-0 w-25">
+                  <input
+                    type="number"
+                    class="form-control stuk-input table-input"
+                    name="quantityi-{{ i }}"
+                    [(ngModel)]="item.qty"
+                  />
+                </td>
+                <td class="border-0 w-25">
+                  <div class="custom-input-group mb-2 table-input">
+                    <div class="input-group-prepend">
+                      <div class="input-group-text">
+                        <span>$</span>
+                      </div>
+                    </div>
+                    <input
+                      type="number"
+                      class="form-control"
+                      [(ngModel)]="item.price"
+                      name="pricei-{{ i }}"
+                    />
+                  </div>
+                </td>
+                <td class="border-0" style="width: 10%">
+                  $ {{ item.qty * item.price || 0 | decimalNumber }}
+                </td>
+              </tr>
+            </tbody>
+            <tbody
+              class="border-0"
+              *ngIf="
+                data.orderInfo &&
+                data.orderInfo.includeStorage &&
+                !data.orderInfo.removeStorageCharges
+              "
+            >
+              <tr (input)="calculatePrice()">
+                <td class="border-0" style="width: 40%">
+                  <span
+                    style="margin-right: 2px"
+                    (click)="
+                      data.orderInfo.removeStorageCharges = true;
+                      calculatePrice()
+                    "
+                  >
+                    <i class="st-icon st-close-dark pointer"></i>
+                  </span>
+                  <span> Storage</span>
+                  <span class="ml-auto font-13">
+                    Auto Calculate Days
+                    <ui-switch
+                      [(ngModel)]="data.orderInfo.autoStoredCountDays"
+                      size="small"
+                      (change)="countDays($event)"
+                    >
+                    </ui-switch>
+                  </span>
+                </td>
+                <td class="border-0 w-25">
+                  <input
+                    type="number"
+                    class="form-control stuk-input table-input"
+                    name="storedDays"
+                    [(ngModel)]="data.orderInfo.storedDays"
+                    (input)="data.orderInfo.autoStoredCountDays = false"
+                  />
+                </td>
+                <td class="border-0 w-25">
+                  <div class="custom-input-group mb-2 table-input">
+                    <div class="input-group-prepend">
+                      <div class="input-group-text">
+                        <span>$</span>
+                      </div>
+                    </div>
+                    <input
+                      type="number"
+                      class="form-control"
+                      name="storedPerDayPrice"
+                      [(ngModel)]="data.orderInfo.storedPerDayPrice"
+                    />
+                  </div>
+                </td>
+                <td class="border-0" style="width: 10%">
+                  $
+                  {{
+                    data.orderInfo.storedDays * data.orderInfo.storedPerDayPrice
+                      | decimalNumber
+                  }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="row mx-0">
+        <div class="col-lg-7">
+          <div class="row">
+            <div class="col-sm-6">
+              <label for="">Add Items</label>
+              <select
+                class="form-control stuk-input col-10"
+                name="items"
+                (change)="addAdditionalItem($event.target.value)"
+              >
+                <option [ngValue]="null">Add Item</option>
+                <option *ngFor="let item of additionalItems" [value]="item.id">
+                  {{ item.name }}
+                </option>
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label for="discount">Discount: </label>
+              <div class="d-inline-block mx-2">
+                <input
+                  type="radio"
+                  name="discountType"
+                  id="flatDiscount"
+                  [checked]="data.orderInfo.discountType == 'flat'"
+                  (click)="
+                    data.orderInfo.discountType = 'flat'; calculatePrice()
+                  "
+                />
+                <label for="flatDiscount">Flat</label>
+              </div>
+              <div class="d-inline-block mx-2">
+                <input
+                  type="radio"
+                  name="discountType"
+                  id="percentDiscount"
+                  [checked]="data.orderInfo.discountType == 'percent'"
+                  (click)="
+                    data.orderInfo.discountType = 'percent'; calculatePrice()
+                  "
+                />
+                <label for="percentDiscount">Percent</label>
+              </div>
+
+              <input
+                id="discount_value"
+                type="number"
+                class="form-control stuk-input"
+                placeholder="Add % or $ amount"
+                name="dicountVal"
+                [value]="data.orderInfo.discountValue"
+                (input)="percentValChange($event)"
+                min="0"
+              />
+            </div>
+            <div class="col-sm-12 mt-3">
+              <div class="card">
+                <div class="card-header">
+                  <span class="font-15 semi-bold-text">Invoice Notes</span>
+                </div>
+                <div class="card-body p-0">
+                  <textarea
+                    class="form-control stuk-input border-0"
+                    [(ngModel)]="data.orderInfo.invoiceNotes"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 ml-auto">
+          <table class="table ml-auto" style="width: 250px">
+            <tr>
+              <td class="border-0 font-weight-bold">
+                Sub Total
+                <span
+                  ngbPopover="Includes : Items + Additional Items"
+                  triggers="mouseenter:mouseleave"
+                  [closeDelay]="500"
+                >
+                  <i class="st-icon st-info"></i
+                ></span>
+              </td>
+              <td class="border-0">$ {{ subTotal | decimalNumber }}</td>
+            </tr>
+
+            <tr>
+              <td class="border-0 font-weight-bold">
+                Tax
+                <span ngbPopover="Service Tax" triggers="mouseenter:mouseleave" [closeDelay]="500">
+                  <i class="st-icon st-info"></i
+                ></span>
+              </td>
+              <td class="border-0">$ {{ taxAmount | decimalNumber }}</td>
+            </tr>
+            <tr>
+              <td class="border-0 font-weight-bold">
+                Discount
+                <span ngbPopover="Discount" triggers="mouseenter:mouseleave" [closeDelay]="500">
+                  <i class="st-icon st-info"></i
+                ></span>
+              </td>
+              <td class="border-0">$ {{ discountAmmount | decimalNumber }}</td>
+            </tr>
+            <tr>
+              <td colspan="2" class="border-0 font-weight-bold">
+                <div
+                  class="custom-control custom-checkbox my-1 mr-sm-2 hover-box"
+                >
+                  <input
+                    type="checkbox"
+                    class="custom-control-input"
+                    id="exemptTax"
+                    name="exemptTax"
+                    [(ngModel)]="exemptTax"
+                    (change)="calculatePrice()"
+                  />
+                  <label
+                    class="custom-control-label font-14 d-inline"
+                    for="exemptTax"
+                    >Exempt Tax
+                    <span
+                      ngbPopover="Include service Tax"
+                      triggers="mouseenter:mouseleave"
+                      [closeDelay]="500"
+                    >
+                      <i class="st-icon st-info"></i
+                    ></span>
+                  </label>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="border-0 font-weight-bold">
+                Service Fee
+                <span
+                  ngbPopover="STUK service fee"
+                  triggers="mouseenter:mouseleave"
+                  [closeDelay]="500"
+                >
+                  <i class="st-icon st-info"></i
+                ></span>
+              </td>
+              <td class="border-0">
+                $ {{ data.orderInfo.serviceCharge | decimalNumber }}
+              </td>
+            </tr>
+            <!-- <tr>
+              <td class="border-0 font-weight-bold">
+                Mileage Fee
+                <span
+                  ngbPopover="STUK mileage fee"
+                  triggers="mouseenter:mouseleave"
+                >
+                  <i class="st-icon st-info"></i
+                ></span>
+              </td>
+              <td class="border-0">$ {{ mileageFee | decimalNumber }}</td>
+            </tr> -->
+
+            <tr>
+              <td class="border-0 font-weight-bold">
+                Invoice Total
+                <span
+                  ngbPopover="Total amount"
+                  triggers="mouseenter:mouseleave"
+                  [closeDelay]="500"
+                >
+                  <i class="st-icon st-info"></i
+                ></span>
+              </td>
+              <td class="border-0">$ {{ total | decimalNumber }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div
+      class="card-body px-0"
+      *ngIf="data.orderInfo && data.orderInfo.orderType == 'app'"
+    >
+      <div class="col-sm-12 px-0">
+        <table class="table stuk-table">
+          <thead class="stuk-table-header">
+            <tr>
+              <th>Item</th>
+              <th class="pl-2">Qty</th>
+              <th class="pl-2">Price</th>
+              <th class="pl-0">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <span
+                  *ngIf="data.orderInfo.appService.serviceType == 'quantity'"
+                >
+                  Hookup
+                </span>
+                <span
+                  *ngIf="data.orderInfo.appService.serviceType == 'quantity'"
+                >
+                  {{ data.orderInfo.appService.label }}
+                </span>
+              </td>
+              <td class="border-0">Hookup</td>
+              <td class="border-0">
+                
+                {{ data.orderInfo.appServiceCharge | decimalNumber}}
+              </td>
+              <td class="border-0">
+                $
+                {{ data.orderInfo.appServiceCharge | decimalNumber}}
+              </td>
+            </tr>
+            <tr *ngIf="data.orderInfo.appService.serviceType == 'quantity'">
+              <td class="border-0">Towing</td>
+              <td class="border-0">
+                {{ data.orderInfo.milesCustomerToShop || 0 | decimalNumber }}
+              </td>
+              <td class="border-0">
+                $
+                {{ data.orderInfo.appServicePerMileCharge | decimalNumber }}
+              </td>
+              <td class="border-0">
+                $
+                {{
+                  data.orderInfo.milesCustomerToShop *
+                    data.orderInfo.appServicePerMileCharge | decimalNumber
+                }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row mx-0">
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-header">
+              <span class="font-15 semi-bold-text">Invoice Notes</span>
+            </div>
+            <div class="card-body p-0">
+              <textarea
+                class="form-control stuk-input border-0"
+                [(ngModel)]="data.orderInfo.invoiceNotes"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 ml-auto">
+          <table class="table ml-auto" style="width: 250px">
+            <tr>
+              <td class="border-0 font-weight-bold">
+                Sub Total
+                <span
+                  ngbPopover="Includes : Items + Additional Items"
+                  triggers="mouseenter:mouseleave"
+                  [closeDelay]="500"
+                >
+                  <i class="st-icon st-info"></i
+                ></span>
+              </td>
+              <td class="border-0">
+                $
+                <span>
+                  {{ appOrderSubTotal | decimalNumber }}
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td class="border-0 font-weight-bold">
+                Service Fee
+                <span
+                  ngbPopover="STUK service fee"
+                  triggers="mouseenter:mouseleave"
+                  [closeDelay]="500"
+                >
+                  <i class="st-icon st-info"></i
+                ></span>
+              </td>
+              <td class="border-0">$ {{ data.orderInfo.serviceCharge }}</td>
+            </tr>
+            <!-- <tr>
+              <td class="border-0 font-weight-bold">
+                Mileage Fee
+                <span
+                  ngbPopover="STUK mileage fee"
+                  triggers="mouseenter:mouseleave"
+                >
+                  <i class="st-icon st-info"></i
+                ></span>
+              </td>
+              <td class="border-0">
+                $
+                {{
+                  data.orderInfo.milesCustomerToShop *
+                    data.orderInfo.servicePerMileCharge || 0 | decimalNumber
+                }}
+              </td>
+            </tr> -->
+            <tr>
+              <td class="border-0 font-weight-bold">
+                Invoice Total
+                <span
+                  ngbPopover="Total amount"
+                  triggers="mouseenter:mouseleave"
+                  [closeDelay]="500"
+                >
+                  <i class="st-icon st-info"></i
+                ></span>
+              </td>
+              <td class="border-0">$ {{ total | decimalNumber }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Payments section -->
+  <app-order-payments
+    [orderPayments]="data.payments"
+    [currentUser]="currentUser"
+    [orderId]="data.orderInfo.id"
+    [invoiceId]="data.id"
+    [invoiceBalance]="data.orderInfo.invoiceBalance"
+    (onPayments)="paymentsUpdated($event)"
+  ></app-order-payments>
+  <!-- End payments section -->
+  <div class="modal-footer modal-body-light">
+    <button
+      type="button"
+      class="btn btn-cancel btn-width-medium mx-2"
+      (click)="close()"
+    >
+      Cancel
+    </button>
+    <button
+      type="submit"
+      class="btn btn-primary btn-width-medium"
+      (click)="save()"
+    >
+      Save
+    </button>
+  </div>
+</div>
